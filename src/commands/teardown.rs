@@ -50,9 +50,11 @@ pub fn run(force: bool) -> Result<()> {
     cleanup_empty_dir(&project_dir);
     cleanup_empty_dir(&yati_base);
 
+    let session_name = format!("{}/{}", project, branch);
+
     if tmux::is_in_tmux() {
-        println!("Closing tmux window...");
-        tmux::kill_current_window()?;
+        println!("Killing tmux session '{}'...", session_name);
+        tmux::kill_session(&session_name)?;
     }
 
     println!("Worktree '{}' removed successfully", branch);
