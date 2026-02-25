@@ -43,7 +43,23 @@ pub fn run(force: bool) -> Result<()> {
     }
 
     println!("Removing worktree at {}", worktree_path.display());
-    git::worktree_remove(&worktree_path, force)?;
+    git::worktree_remove(&worktree_path, force, &main_worktree.path)?;
+
+    // Remove the worktree directory if it still exists
+    if worktree_path.exists() {
+        std::fs::remove_dir_all(&worktree_path)
+            .with_context(|| format!("Failed to remove directory {}", worktree_path.display()))?;
+    }
+
+    // Prune stale worktree metadata
+    if let Err(e) = git::worktree_prune(&main_worktree.path) {
+        eprintln!("Warning: failed to prune worktrees: {}", e);
+    }
+
+    // Delete the branch
+    if let Err(e) = git::branch_delete(&branch, force, &main_worktree.path) {
+        eprintln!("Warning: failed to delete branch '{}': {}", branch, e);
+    }
 
     // Clean up empty parent directories
     let project_dir = yati_base.join(&project);

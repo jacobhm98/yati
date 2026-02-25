@@ -2,6 +2,12 @@ use anyhow::{Context, Result};
 use serde::Deserialize;
 use std::path::Path;
 
+#[derive(Debug, Deserialize, Default, Clone)]
+pub struct WindowConfig {
+    pub name: String,
+    pub command: Option<String>,
+}
+
 #[derive(Debug, Deserialize, Default)]
 #[serde(default)]
 pub struct Config {
@@ -9,6 +15,7 @@ pub struct Config {
     pub exclude: Vec<String>,
     pub post_create: Vec<String>,
     pub pre_teardown: Vec<String>,
+    pub windows: Vec<WindowConfig>,
 }
 
 pub fn load_config(repo_root: &Path) -> Result<Config> {

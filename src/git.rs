@@ -70,23 +70,78 @@ pub fn worktree_add(path: &Path, branch: &str) -> Result<()> {
     Ok(())
 }
 
-pub fn worktree_remove(path: &Path, force: bool) -> Result<()> {
-    let mut args = vec!["worktree", "remove"];
-    let path_str = path.to_string_lossy();
-    args.push(&path_str);
-    if force {
-        args.push("--force");
-    }
+fn has_dirty_tracked_files(path: &Path, repo_dir: &Path) -> Result<bool> {
     let output = Command::new("git")
-        .args(&args)
+        .args(["-C", &path.to_string_lossy(), "status", "--porcelain"])
+        .current_dir(repo_dir)
         .output()
-        .context("Failed to run git worktree remove")?;
+        .context("Failed to run git status")?;
+    let text = String::from_utf8(output.stdout).context("Invalid UTF-8 in git output")?;
+    Ok(text
+        .lines()
+        .any(|line| !line.starts_with("??")))
+}
+
+fn has_untracked_non_ignored_files(path: &Path, repo_dir: &Path) -> Result<bool> {
+    let output = Command::new("git")
+        .args([
+            "-C",
+            &path.to_string_lossy(),
+            "ls-files",
+            "--others",
+            "--exclude-standard",
+        ])
+        .current_dir(repo_dir)
+        .output()
+        .context("Failed to run git ls-files")?;
+    let text = String::from_utf8(output.stdout).context("Invalid UTF-8 in git output")?;
+    Ok(!text.trim().is_empty())
+}
+
+fn clean_ignored_files(path: &Path, repo_dir: &Path) -> Result<()> {
+    let output = Command::new("git")
+        .args(["-C", &path.to_string_lossy(), "clean", "-fdX"])
+        .current_dir(repo_dir)
+        .output()
+        .context("Failed to run git clean")?;
     if !output.status.success() {
         bail!(
-            "git worktree remove failed: {}",
+            "git clean -fdX failed: {}",
             String::from_utf8_lossy(&output.stderr).trim()
         );
     }
+    Ok(())
+}
+
+pub fn worktree_remove(path: &Path, force: bool, repo_dir: &Path) -> Result<()> {
+    if !force {
+        // Without --force: only block on genuinely dirty state
+        if has_dirty_tracked_files(path, repo_dir)? || has_untracked_non_ignored_files(path, repo_dir)? {
+            bail!(
+                "Worktree has uncommitted changes or untracked files.\n\
+                 Use 'yati teardown --force' to remove it anyway."
+            );
+        }
+    }
+
+    // Clean gitignored files (e.g. .env, node_modules) so git worktree remove succeeds
+    clean_ignored_files(path, repo_dir)?;
+
+    let output = Command::new("git")
+        .args(["worktree", "remove", "--force", &path.to_string_lossy()])
+        .current_dir(repo_dir)
+        .output()
+        .context("Failed to run git worktree remove")?;
+
+    if !output.status.success() {
+        // Fall back to manual removal + prune if git worktree remove still fails
+        if path.exists() {
+            std::fs::remove_dir_all(path)
+                .with_context(|| format!("Failed to remove {}", path.display()))?;
+        }
+        worktree_prune(repo_dir)?;
+    }
+
     Ok(())
 }
 
@@ -95,6 +150,38 @@ pub struct WorktreeEntry {
     pub path: PathBuf,
     pub head: String,
     pub branch: String,
+}
+
+pub fn worktree_prune(repo_dir: &Path) -> Result<()> {
+    let output = Command::new("git")
+        .args(["worktree", "prune"])
+        .current_dir(repo_dir)
+        .output()
+        .context("Failed to run git worktree prune")?;
+    if !output.status.success() {
+        bail!(
+            "git worktree prune failed: {}",
+            String::from_utf8_lossy(&output.stderr).trim()
+        );
+    }
+    Ok(())
+}
+
+pub fn branch_delete(branch: &str, force: bool, repo_dir: &Path) -> Result<()> {
+    let flag = if force { "-D" } else { "-d" };
+    let output = Command::new("git")
+        .args(["branch", flag, branch])
+        .current_dir(repo_dir)
+        .output()
+        .context("Failed to run git branch delete")?;
+    if !output.status.success() {
+        bail!(
+            "git branch {} failed: {}",
+            flag,
+            String::from_utf8_lossy(&output.stderr).trim()
+        );
+    }
+    Ok(())
 }
 
 pub fn worktree_list() -> Result<Vec<WorktreeEntry>> {

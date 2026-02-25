@@ -54,5 +54,7 @@ pub fn run(branch_name: &str) -> Result<()> {
         println!("Attach with: tmux attach -t '{}'", session_name);
     }
 
+    tmux::setup_windows(&session_name, &worktree_path, &config.windows)?;
+
     Ok(())
 }

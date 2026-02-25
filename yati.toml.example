@@ -1,0 +1,27 @@
+# Files to copy from the main worktree into new worktrees.
+# Useful for secrets and local config that shouldn't be in git.
+# copy_files = [".env", ".env.local"]
+
+# Glob patterns to exclude from copy_files.
+# exclude = ["*.log"]
+
+# Commands to run in the worktree directory after creating it.
+# post_create = ["npm install"]
+
+# Commands to run before tearing down a worktree.
+# pre_teardown = ["docker compose down"]
+
+# Tmux windows to create in the session.
+# The first window replaces the default window; additional entries
+# create new windows. If omitted, a single unnamed window is used.
+#
+# [[windows]]
+# name = "editor"
+# command = "nvim"
+#
+# [[windows]]
+# name = "server"
+# command = "npm run dev"
+#
+# [[windows]]
+# name = "shell"

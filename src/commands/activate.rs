@@ -36,6 +36,7 @@ pub fn run(branch_name: &str) -> Result<()> {
 
         println!("Creating tmux session '{}'", session_name);
         tmux::new_session(&session_name, &worktree_path)?;
+        tmux::setup_windows(&session_name, &worktree_path, &config.windows)?;
     }
 
     Ok(())
