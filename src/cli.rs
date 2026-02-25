@@ -20,6 +20,11 @@ pub enum Command {
         #[arg(long)]
         force: bool,
     },
+    /// Activate an existing worktree by attaching to or creating its tmux session
+    Activate {
+        /// Name of the branch to activate
+        branch_name: String,
+    },
     /// List active yati-managed worktrees for the current project
     List,
 }

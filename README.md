@@ -32,6 +32,20 @@ If you're not inside tmux, the session is created detached and you can attach wi
 tmux attach -t '<project>/feature-branch'
 ```
 
+### Activate a worktree
+
+If a tmux session for an existing worktree was lost (e.g., after a reboot), you can re-activate it:
+
+```sh
+yati activate feature-branch
+```
+
+This will:
+
+1. Check that a worktree exists at `~/.yati/<project>/feature-branch`
+2. If a tmux session already exists, switch to it
+3. Otherwise, run `post_create` hooks and create a new tmux session
+
 ### Tear down a worktree
 
 From inside a yati-managed worktree:

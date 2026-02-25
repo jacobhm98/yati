@@ -41,6 +41,38 @@ pub fn new_session(name: &str, working_dir: &Path) -> Result<()> {
     Ok(())
 }
 
+pub fn session_exists(name: &str) -> bool {
+    Command::new("tmux")
+        .args(["has-session", "-t", name])
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+}
+
+pub fn attach_or_switch(name: &str) -> Result<()> {
+    if is_in_tmux() {
+        let output = Command::new("tmux")
+            .args(["switch-client", "-t", name])
+            .output()
+            .context("Failed to run tmux switch-client")?;
+        if !output.status.success() {
+            bail!(
+                "tmux switch-client failed: {}",
+                String::from_utf8_lossy(&output.stderr).trim()
+            );
+        }
+    } else {
+        let status = Command::new("tmux")
+            .args(["attach", "-t", name])
+            .status()
+            .context("Failed to run tmux attach")?;
+        if !status.success() {
+            bail!("tmux attach failed");
+        }
+    }
+    Ok(())
+}
+
 pub fn kill_session(name: &str) -> Result<()> {
     let output = Command::new("tmux")
         .args(["kill-session", "-t", name])
