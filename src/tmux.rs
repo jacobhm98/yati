@@ -75,14 +75,21 @@ pub fn attach_or_switch(name: &str) -> Result<()> {
     Ok(())
 }
 
-pub fn switch_to_last_session() -> bool {
-    // Try switching to the last (previous) session
-    if Command::new("tmux")
+/// Try switching to the previous session (the one we switched from).
+/// Returns true only if there was a previous session to switch to.
+pub fn switch_to_previous_session() -> bool {
+    Command::new("tmux")
         .args(["switch-client", "-l"])
         .output()
         .map(|o| o.status.success())
         .unwrap_or(false)
-    {
+}
+
+/// Try switching to the last (previous) session, falling back to the next session.
+/// Used by teardown where the current session is about to be killed and we need
+/// to land somewhere.
+pub fn switch_to_last_session() -> bool {
+    if switch_to_previous_session() {
         return true;
     }
     // Fall back to the next session

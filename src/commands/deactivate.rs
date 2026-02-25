@@ -22,8 +22,8 @@ pub fn run() -> Result<()> {
     let project = components[0].as_os_str().to_string_lossy();
     let branch = components[1].as_os_str().to_string_lossy();
 
-    // Try to switch to the previous or next session
-    if tmux::switch_to_last_session() {
+    // Switch to the session we came from, if there was one
+    if tmux::switch_to_previous_session() {
         println!("Deactivated '{}/{}'", project, branch);
     } else {
         // No other session — detach from tmux to return to the original terminal
