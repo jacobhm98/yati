@@ -32,15 +32,15 @@ This will:
 4. Run any `post_create` hooks
 5. Open a new tmux session named `<project>/feature-branch`
 
-If you're not inside tmux, the session is created detached and you can attach with:
-
-```sh
-tmux attach -t '<project>/feature-branch'
-```
-
 ### Activate a worktree
 
-If a tmux session for an existing worktree was lost (e.g., after a reboot), you can re-activate it:
+Switch to an existing worktree:
+
+```sh
+yati activate project/feature-branch
+```
+
+or, if ran from project root
 
 ```sh
 yati activate feature-branch
@@ -50,7 +50,17 @@ This will:
 
 1. Check that a worktree exists at `~/.yati/<project>/feature-branch`
 2. If a tmux session already exists, switch to it
-3. Otherwise, run `post_create` hooks and create a new tmux session
+3. If the session was lost (e.g., after a reboot), run `post_create` hooks and create a new tmux session
+
+### Deactivate a worktree
+
+From inside a yati-managed worktree:
+
+```sh
+yati deactivate
+```
+
+This leaves the current session without destroying it. If you switched from another tmux session, you'll be returned there. If you attached from a bare terminal, you'll be detached from tmux. The session stays alive for later reactivation with `yati activate`.
 
 ### Tear down a worktree
 
@@ -60,7 +70,7 @@ From inside a yati-managed worktree:
 yati teardown
 ```
 
-This removes the worktree, runs `pre_teardown` hooks, and kills the tmux session.
+This runs `pre_teardown` hooks, removes the worktree, deletes the branch, and kills the tmux session. If you came from another session you'll be switched back; otherwise you'll be returned to your original terminal.
 
 Use `--force` to remove even with uncommitted changes:
 
@@ -74,7 +84,7 @@ yati teardown --force
 yati list
 ```
 
-Shows all yati-managed worktrees for the current project.
+Shows all yati-managed worktrees across all projects.
 
 ## Configuration
 
@@ -88,8 +98,17 @@ copy_files = [".env", "node_modules"]
 exclude = ["*.log"]
 
 # Commands to run after creating a worktree
-post_create = ["npm install"]
+post_create = ["npm install", "docker compose up"]
 
 # Commands to run before tearing down a worktree
 pre_teardown = ["docker compose down"]
+
+# Tmux windows to create in the session.
+# The first window replaces the default window; additional entries create new windows.
+[tmux]
+windows = [
+  { name = "editor", command = "nvim" },
+  { name = "server", command = "npm run dev" },
+  { name = "claude --continue" },
+]
 ```
