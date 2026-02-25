@@ -15,13 +15,9 @@
 # The first window replaces the default window; additional entries
 # create new windows. If omitted, a single unnamed window is used.
 #
-# [[windows]]
-# name = "editor"
-# command = "nvim"
-#
-# [[windows]]
-# name = "server"
-# command = "npm run dev"
-#
-# [[windows]]
-# name = "shell"
+# [tmux]
+# windows = [
+#   { name = "editor", command = "nvim" },
+#   { name = "server", command = "npm run dev" },
+#   { name = "shell" },
+# ]

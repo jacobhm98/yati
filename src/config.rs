@@ -10,12 +10,18 @@ pub struct WindowConfig {
 
 #[derive(Debug, Deserialize, Default)]
 #[serde(default)]
+pub struct TmuxConfig {
+    pub windows: Vec<WindowConfig>,
+}
+
+#[derive(Debug, Deserialize, Default)]
+#[serde(default)]
 pub struct Config {
     pub copy_files: Vec<String>,
     pub exclude: Vec<String>,
     pub post_create: Vec<String>,
     pub pre_teardown: Vec<String>,
-    pub windows: Vec<WindowConfig>,
+    pub tmux: TmuxConfig,
 }
 
 pub fn load_config(repo_root: &Path) -> Result<Config> {
