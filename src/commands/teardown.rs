@@ -42,6 +42,14 @@ pub fn run(force: bool) -> Result<()> {
         }
     }
 
+    let session_name = format!("{}/{}", project, branch);
+
+    // Kill all other panes/windows in the session to stop processes (e.g. neovim, LSP)
+    // that could write files back during cleanup. Keep our pane alive.
+    if tmux::is_in_tmux() {
+        tmux::kill_other_panes(&session_name)?;
+    }
+
     println!("Removing worktree at {}", worktree_path.display());
     git::worktree_remove(&worktree_path, force, &main_worktree.path)?;
 
@@ -66,11 +74,12 @@ pub fn run(force: bool) -> Result<()> {
     cleanup_empty_dir(&project_dir);
     cleanup_empty_dir(&yati_base);
 
-    let session_name = format!("{}/{}", project, branch);
-
+    // Now switch away and kill the session
     if tmux::is_in_tmux() {
         println!("Killing tmux session '{}'...", session_name);
-        tmux::switch_to_last_session();
+        if !tmux::switch_to_previous_session() {
+            tmux::detach()?;
+        }
         tmux::kill_session(&session_name)?;
     }
 

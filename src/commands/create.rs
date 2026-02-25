@@ -45,16 +45,10 @@ pub fn run(branch_name: &str) -> Result<()> {
 
     let session_name = format!("{}/{}", project_name, branch_name);
 
-    if tmux::is_in_tmux() {
-        println!("Creating tmux session '{}'", session_name);
-        tmux::new_session(&session_name, &worktree_path)?;
-    } else {
-        println!("Creating detached tmux session '{}'", session_name);
-        tmux::new_session(&session_name, &worktree_path)?;
-        println!("Attach with: tmux attach -t '{}'", session_name);
-    }
-
+    println!("Creating tmux session '{}'", session_name);
+    tmux::new_session(&session_name, &worktree_path)?;
     tmux::setup_windows(&session_name, &worktree_path, &config.tmux.windows)?;
+    tmux::attach_or_switch(&session_name)?;
 
     Ok(())
 }

@@ -27,19 +27,6 @@ pub fn new_session(name: &str, working_dir: &Path) -> Result<()> {
         );
     }
 
-    if is_in_tmux() {
-        let output = Command::new("tmux")
-            .args(["switch-client", "-t", name])
-            .output()
-            .context("Failed to run tmux switch-client")?;
-        if !output.status.success() {
-            bail!(
-                "tmux switch-client failed: {}",
-                String::from_utf8_lossy(&output.stderr).trim()
-            );
-        }
-    }
-
     Ok(())
 }
 
@@ -85,20 +72,6 @@ pub fn switch_to_previous_session() -> bool {
         .unwrap_or(false)
 }
 
-/// Try switching to the last (previous) session, falling back to the next session.
-/// Used by teardown where the current session is about to be killed and we need
-/// to land somewhere.
-pub fn switch_to_last_session() -> bool {
-    if switch_to_previous_session() {
-        return true;
-    }
-    // Fall back to the next session
-    Command::new("tmux")
-        .args(["switch-client", "-n"])
-        .output()
-        .map(|o| o.status.success())
-        .unwrap_or(false)
-}
 
 pub fn rename_window(session: &str, name: &str) -> Result<()> {
     let output = Command::new("tmux")
@@ -206,6 +179,53 @@ pub fn detach() -> Result<()> {
             String::from_utf8_lossy(&output.stderr).trim()
         );
     }
+    Ok(())
+}
+
+/// Kill all panes in the session except the current one.
+/// This stops processes like neovim/LSP without killing the pane running yati teardown.
+pub fn kill_other_panes(session: &str) -> Result<()> {
+    // List all pane IDs in the session
+    let output = Command::new("tmux")
+        .args([
+            "list-panes",
+            "-s",
+            "-t",
+            session,
+            "-F",
+            "#{pane_id}",
+        ])
+        .output()
+        .context("Failed to run tmux list-panes")?;
+    if !output.status.success() {
+        bail!(
+            "tmux list-panes failed: {}",
+            String::from_utf8_lossy(&output.stderr).trim()
+        );
+    }
+
+    // Get the current pane ID
+    let current = Command::new("tmux")
+        .args(["display-message", "-p", "#{pane_id}"])
+        .output()
+        .context("Failed to get current pane ID")?;
+    let current_pane = String::from_utf8_lossy(&current.stdout).trim().to_string();
+
+    let all_panes: Vec<String> = String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .map(|l| l.trim().to_string())
+        .filter(|l| !l.is_empty())
+        .collect();
+
+    for pane in &all_panes {
+        if pane != &current_pane {
+            // Ignore errors — pane may already be dead
+            let _ = Command::new("tmux")
+                .args(["kill-pane", "-t", pane])
+                .output();
+        }
+    }
+
     Ok(())
 }
 
