@@ -73,6 +73,24 @@ pub fn attach_or_switch(name: &str) -> Result<()> {
     Ok(())
 }
 
+pub fn switch_to_last_session() -> bool {
+    // Try switching to the last (previous) session
+    if Command::new("tmux")
+        .args(["switch-client", "-l"])
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+    {
+        return true;
+    }
+    // Fall back to the next session
+    Command::new("tmux")
+        .args(["switch-client", "-n"])
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+}
+
 pub fn kill_session(name: &str) -> Result<()> {
     let output = Command::new("tmux")
         .args(["kill-session", "-t", name])

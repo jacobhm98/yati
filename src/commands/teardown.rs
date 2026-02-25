@@ -54,6 +54,7 @@ pub fn run(force: bool) -> Result<()> {
 
     if tmux::is_in_tmux() {
         println!("Killing tmux session '{}'...", session_name);
+        tmux::switch_to_last_session();
         tmux::kill_session(&session_name)?;
     }
 
