@@ -188,6 +188,20 @@ pub fn setup_windows(session: &str, working_dir: &Path, windows: &[WindowConfig]
     Ok(())
 }
 
+pub fn detach() -> Result<()> {
+    let output = Command::new("tmux")
+        .args(["detach-client"])
+        .output()
+        .context("Failed to run tmux detach-client")?;
+    if !output.status.success() {
+        bail!(
+            "tmux detach-client failed: {}",
+            String::from_utf8_lossy(&output.stderr).trim()
+        );
+    }
+    Ok(())
+}
+
 pub fn kill_session(name: &str) -> Result<()> {
     let output = Command::new("tmux")
         .args(["kill-session", "-t", name])

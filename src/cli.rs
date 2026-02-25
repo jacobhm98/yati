@@ -25,6 +25,8 @@ pub enum Command {
         /// Branch name or project/branch to activate
         target: String,
     },
+    /// Deactivate the current yati session (switch to previous session or detach)
+    Deactivate,
     /// List all yati-managed worktrees across all projects
     List,
 }
