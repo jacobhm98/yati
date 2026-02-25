@@ -5,6 +5,8 @@ A git worktree manager with tmux integration. Create isolated worktrees for feat
 ## Installation
 
 ```sh
+git clone git@github.com:jacobhm98/yati.git
+cd yati
 cargo install --path .
 ```
 
@@ -17,6 +19,7 @@ yati create feature-branch
 ```
 
 This will:
+
 1. Create a new git worktree at `~/.yati/<project>/feature-branch`
 2. Create a new branch `feature-branch` (or use an existing one)
 3. Copy any configured files into the worktree

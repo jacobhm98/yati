@@ -49,3 +49,7 @@ There are currently no automated tests. Manual testing:
 - All external commands (git, tmux) are run via `std::process::Command`
 - Worktrees are stored under `~/.yati/<project>/<branch>`
 - tmux sessions are named `<project>/<branch>`
+
+## After making changes
+
+- Make sure the README.md is still up to date with the changes you just made.
