@@ -1,5 +1,7 @@
 # yati
 
+_yāti_ (याति) — Sanskrit for "travels" or "goes forth." In the Rigveda, it describes the journeying of gods between realms. _yāti_ lets you travel between worktrees seamlessly, each one a self-contained world.
+
 A git worktree manager with tmux integration. Create isolated worktrees for feature branches, each in its own tmux session.
 
 ## Installation
