@@ -22,9 +22,9 @@ pub enum Command {
     },
     /// Activate an existing worktree by attaching to or creating its tmux session
     Activate {
-        /// Name of the branch to activate
-        branch_name: String,
+        /// Branch name or project/branch to activate
+        target: String,
     },
-    /// List active yati-managed worktrees for the current project
+    /// List all yati-managed worktrees across all projects
     List,
 }

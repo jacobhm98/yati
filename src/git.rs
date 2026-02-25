@@ -195,7 +195,42 @@ pub fn worktree_list() -> Result<Vec<WorktreeEntry>> {
             String::from_utf8_lossy(&output.stderr).trim()
         );
     }
-    let text = String::from_utf8(output.stdout).context("Invalid UTF-8 in git output")?;
+    parse_worktree_porcelain(&String::from_utf8(output.stdout).context("Invalid UTF-8 in git output")?)
+}
+
+pub fn worktree_list_from(dir: &Path) -> Result<Vec<WorktreeEntry>> {
+    let output = Command::new("git")
+        .args(["worktree", "list", "--porcelain"])
+        .current_dir(dir)
+        .output()
+        .context("Failed to run git worktree list")?;
+    if !output.status.success() {
+        bail!(
+            "git worktree list failed: {}",
+            String::from_utf8_lossy(&output.stderr).trim()
+        );
+    }
+    parse_worktree_porcelain(&String::from_utf8(output.stdout).context("Invalid UTF-8 in git output")?)
+}
+
+pub fn head_short(worktree_dir: &Path) -> Result<String> {
+    let output = Command::new("git")
+        .args(["-C", &worktree_dir.to_string_lossy(), "rev-parse", "--short", "HEAD"])
+        .output()
+        .context("Failed to run git rev-parse")?;
+    if !output.status.success() {
+        bail!(
+            "git rev-parse failed: {}",
+            String::from_utf8_lossy(&output.stderr).trim()
+        );
+    }
+    Ok(String::from_utf8(output.stdout)
+        .context("Invalid UTF-8 in git output")?
+        .trim()
+        .to_string())
+}
+
+fn parse_worktree_porcelain(text: &str) -> Result<Vec<WorktreeEntry>> {
     let mut entries = Vec::new();
     let mut path = None;
     let mut head = String::new();
