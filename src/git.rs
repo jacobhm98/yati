@@ -30,6 +30,25 @@ pub fn repo_name() -> Result<String> {
     Ok(name)
 }
 
+pub fn main_worktree_root() -> Result<PathBuf> {
+    let entries = worktree_list()?;
+    let main = entries
+        .into_iter()
+        .next()
+        .context("No worktrees found")?;
+    Ok(main.path)
+}
+
+pub fn main_repo_name() -> Result<String> {
+    let root = main_worktree_root()?;
+    let name = root
+        .file_name()
+        .context("Could not determine repo name")?
+        .to_string_lossy()
+        .to_string();
+    Ok(name)
+}
+
 pub fn validate_branch_name(name: &str) -> Result<()> {
     let output = Command::new("git")
         .args(["check-ref-format", "--branch", name])

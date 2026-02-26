@@ -51,6 +51,7 @@ This will:
 1. Check that a worktree exists at `~/.yati/<project>/feature-branch`
 2. If a tmux session already exists, switch to it
 3. If the session was lost (e.g., after a reboot), run `post_create` hooks and create a new tmux session
+4. Run `post_activate` hooks (runs on every activate, whether the session existed or was recreated)
 
 ### Deactivate a worktree
 
@@ -98,7 +99,10 @@ copy_files = [".env", "node_modules"]
 exclude = ["*.log"]
 
 # Commands to run after creating a worktree
-post_create = ["npm install", "docker compose up"]
+post_create = ["npm install"]
+
+# Commands to run every time a worktree is activated (including after creation)
+post_activate = ["docker compose up -d"]
 
 # Commands to run before tearing down a worktree
 pre_teardown = ["docker compose down"]

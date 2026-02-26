@@ -4,8 +4,8 @@ use std::process::Command;
 use crate::{config, copy, git, tmux};
 
 pub fn run(branch_name: &str) -> Result<()> {
-    let repo_root = git::repo_root()?;
-    let project_name = git::repo_name()?;
+    let repo_root = git::main_worktree_root()?;
+    let project_name = git::main_repo_name()?;
     git::validate_branch_name(branch_name)?;
 
     let config = config::load_config(&repo_root)?;

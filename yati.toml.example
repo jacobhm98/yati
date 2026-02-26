@@ -8,6 +8,9 @@
 # Commands to run in the worktree directory after creating it.
 # post_create = ["npm install"]
 
+# Commands to run every time a worktree is activated (including after creation).
+# post_activate = ["docker compose up -d"]
+
 # Commands to run before tearing down a worktree.
 # pre_teardown = ["docker compose down"]
 

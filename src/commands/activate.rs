@@ -39,14 +39,13 @@ pub fn run(target: &str) -> Result<()> {
         bail!("No yati worktree found for '{}'", target);
     }
 
+    let entries = git::worktree_list_from(&worktree_path)?;
+    let main_worktree = entries.first().context("No worktrees found")?;
+    let config = config::load_config(&main_worktree.path)?;
+
     if tmux::session_exists(&session_name) {
         println!("Switching to existing session '{}'", session_name);
-        tmux::attach_or_switch(&session_name)?;
     } else {
-        let entries = git::worktree_list_from(&worktree_path)?;
-        let main_worktree = entries.first().context("No worktrees found")?;
-        let config = config::load_config(&main_worktree.path)?;
-
         for hook in &config.post_create {
             println!("Running post_create hook: {}", hook);
             let status = Command::new("sh")
@@ -62,8 +61,21 @@ pub fn run(target: &str) -> Result<()> {
         println!("Creating tmux session '{}'", session_name);
         tmux::new_session(&session_name, &worktree_path)?;
         tmux::setup_windows(&session_name, &worktree_path, &config.tmux.windows)?;
-        tmux::attach_or_switch(&session_name)?;
     }
+
+    for hook in &config.post_activate {
+        println!("Running post_activate hook: {}", hook);
+        let status = Command::new("sh")
+            .args(["-c", hook])
+            .current_dir(&worktree_path)
+            .status()
+            .with_context(|| format!("Failed to run hook: {}", hook))?;
+        if !status.success() {
+            eprintln!("Warning: post_activate hook failed: {}", hook);
+        }
+    }
+
+    tmux::attach_or_switch(&session_name)?;
 
     Ok(())
 }

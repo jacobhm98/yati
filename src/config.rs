@@ -20,6 +20,7 @@ pub struct Config {
     pub copy_files: Vec<String>,
     pub exclude: Vec<String>,
     pub post_create: Vec<String>,
+    pub post_activate: Vec<String>,
     pub pre_teardown: Vec<String>,
     pub tmux: TmuxConfig,
 }
