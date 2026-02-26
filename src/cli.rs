@@ -1,4 +1,5 @@
 use clap::{Parser, Subcommand};
+use clap_complete::engine::ArgValueCompleter;
 
 #[derive(Parser)]
 #[command(name = "yati", about = "Git worktree manager with tmux integration")]
@@ -12,6 +13,7 @@ pub enum Command {
     /// Create a new worktree and branch
     Create {
         /// Name of the branch to create
+        #[arg(add = ArgValueCompleter::new(crate::completions::complete_create_branch))]
         branch_name: String,
     },
     /// Tear down the current yati worktree
@@ -23,6 +25,7 @@ pub enum Command {
     /// Activate an existing worktree by attaching to or creating its tmux session
     Activate {
         /// Branch name or project/branch to activate
+        #[arg(add = ArgValueCompleter::new(crate::completions::complete_activate_target))]
         target: String,
     },
     /// Deactivate the current yati session (switch to previous session or detach)

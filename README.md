@@ -87,6 +87,30 @@ yati list
 
 Shows all yati-managed worktrees across all projects.
 
+## Shell Completions
+
+yati supports dynamic shell completions for subcommands, flags, worktree targets, and branch names. Run the appropriate setup for your shell once:
+
+### Fish
+
+```fish
+echo 'source (COMPLETE=fish yati | psub)' >> ~/.config/fish/completions/yati.fish
+```
+
+### Bash
+
+```bash
+echo 'source <(COMPLETE=bash yati)' >> ~/.bashrc
+```
+
+### Zsh
+
+```zsh
+echo 'source <(COMPLETE=zsh yati)' >> ~/.zshrc
+```
+
+After restarting your shell (or sourcing the file), `yati <TAB>` will complete subcommands, `yati activate <TAB>` will complete with existing worktree targets, and `yati create <TAB>` will complete with git branch names.
+
 ## Configuration
 
 Create a `yati.toml` in your repository root:
