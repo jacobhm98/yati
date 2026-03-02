@@ -6,7 +6,12 @@
 # exclude = ["*.log"]
 
 # Commands to run in the worktree directory after creating it.
-# post_create = ["npm install"]
+# Hooks can be plain strings (run synchronously before the tmux session)
+# or objects with `async = true` (run in a background tmux "setup" window).
+# post_create = [
+#   "echo setting up",
+#   { command = "npm install", async = true },
+# ]
 
 # Commands to run every time a worktree is activated (including after creation).
 # post_activate = ["docker compose up -d"]

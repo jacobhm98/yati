@@ -229,6 +229,43 @@ pub fn kill_other_panes(session: &str) -> Result<()> {
     Ok(())
 }
 
+pub fn build_hook_command(hooks: &[&str]) -> String {
+    let chained = hooks.join(" && ");
+    format!(
+        "sh -c '{} || {{ echo \"\\nHook failed. Press Enter to close.\"; read _; exit 1; }}'",
+        chained
+    )
+}
+
+pub fn create_command_window(
+    session: &str,
+    name: &str,
+    working_dir: &Path,
+    command: &str,
+) -> Result<()> {
+    let output = Command::new("tmux")
+        .args([
+            "new-window",
+            "-d",
+            "-t",
+            session,
+            "-n",
+            name,
+            "-c",
+            &working_dir.to_string_lossy(),
+            command,
+        ])
+        .output()
+        .context("Failed to run tmux new-window for command window")?;
+    if !output.status.success() {
+        bail!(
+            "tmux new-window (command) failed: {}",
+            String::from_utf8_lossy(&output.stderr).trim()
+        );
+    }
+    Ok(())
+}
+
 pub fn kill_session(name: &str) -> Result<()> {
     let output = Command::new("tmux")
         .args(["kill-session", "-t", name])

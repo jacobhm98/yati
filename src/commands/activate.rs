@@ -46,32 +46,46 @@ pub fn run(target: &str) -> Result<()> {
     if tmux::session_exists(&session_name) {
         println!("Switching to existing session '{}'", session_name);
     } else {
-        for hook in &config.post_create {
-            println!("Running post_create hook: {}", hook);
+        let (sync_hooks, async_hooks): (Vec<_>, Vec<_>) = config
+            .post_create
+            .iter()
+            .partition(|h| !h.is_async());
+
+        for hook in &sync_hooks {
+            let cmd = hook.command();
+            println!("Running post_create hook: {}", cmd);
             let status = Command::new("sh")
-                .args(["-c", hook])
+                .args(["-c", cmd])
                 .current_dir(&worktree_path)
                 .status()
-                .with_context(|| format!("Failed to run hook: {}", hook))?;
+                .with_context(|| format!("Failed to run hook: {}", cmd))?;
             if !status.success() {
-                eprintln!("Warning: post_create hook failed: {}", hook);
+                eprintln!("Warning: post_create hook failed: {}", cmd);
             }
         }
 
         println!("Creating tmux session '{}'", session_name);
         tmux::new_session(&session_name, &worktree_path)?;
         tmux::setup_windows(&session_name, &worktree_path, &config.tmux.windows)?;
+
+        if !async_hooks.is_empty() {
+            let cmds: Vec<&str> = async_hooks.iter().map(|h| h.command()).collect();
+            let hook_cmd = tmux::build_hook_command(&cmds);
+            println!("Running async post_create hooks in 'setup' window");
+            tmux::create_command_window(&session_name, "setup", &worktree_path, &hook_cmd)?;
+        }
     }
 
     for hook in &config.post_activate {
-        println!("Running post_activate hook: {}", hook);
+        let cmd = hook.command();
+        println!("Running post_activate hook: {}", cmd);
         let status = Command::new("sh")
-            .args(["-c", hook])
+            .args(["-c", cmd])
             .current_dir(&worktree_path)
             .status()
-            .with_context(|| format!("Failed to run hook: {}", hook))?;
+            .with_context(|| format!("Failed to run hook: {}", cmd))?;
         if !status.success() {
-            eprintln!("Warning: post_activate hook failed: {}", hook);
+            eprintln!("Warning: post_activate hook failed: {}", cmd);
         }
     }
 

@@ -31,14 +31,15 @@ pub fn run(force: bool) -> Result<()> {
 
     // Run pre_teardown hooks
     for hook in &config.pre_teardown {
-        println!("Running pre_teardown hook: {}", hook);
+        let cmd = hook.command();
+        println!("Running pre_teardown hook: {}", cmd);
         let status = Command::new("sh")
-            .args(["-c", hook])
+            .args(["-c", cmd])
             .current_dir(&worktree_path)
             .status()
-            .with_context(|| format!("Failed to run hook: {}", hook))?;
+            .with_context(|| format!("Failed to run hook: {}", cmd))?;
         if !status.success() {
-            eprintln!("Warning: pre_teardown hook failed: {}", hook);
+            eprintln!("Warning: pre_teardown hook failed: {}", cmd);
         }
     }
 

@@ -122,8 +122,13 @@ copy_files = [".env", "node_modules"]
 # Patterns to exclude when copying
 exclude = ["*.log"]
 
-# Commands to run after creating a worktree
-post_create = ["npm install"]
+# Commands to run after creating a worktree.
+# Plain strings run synchronously before the tmux session is created.
+# Use { command = "...", async = true } to run in a background tmux window.
+post_create = [
+  "echo setting up",
+  { command = "npm install", async = true },
+]
 
 # Commands to run every time a worktree is activated (including after creation)
 post_activate = ["docker compose up -d"]
