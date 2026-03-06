@@ -4,13 +4,13 @@ _yāti_ (याति) — Sanskrit for "travels" or "goes forth." In the Rigved
 
 ## What does it do?
 
-It is a git worktree manager with tmux and docker-compose integration. Creates and manages isolated worktrees for feature branches, each in its own tmux session. For when you want to vibe code multiple branches of the same repository simultaneously but still keep your hand in the code using your regular tmux workflows.
-
-Heavily inspired by [opencode-worktree](https://github.com/kdcokenny/opencode-worktree), but agent agnostic.
+It is a git worktree manager with tmux and docker-compose integration. Creates and manages isolated worktrees and environments for feature branches. For when you want to vibe code multiple branches of the same repository simultaneously but maintain proximity to the code.
 
 ### Dev environment lifecycle management
 
 yati manages the full lifecycle of a worktree: file copying, `post_create`/`post_activate`/`pre_teardown` hooks, tmux session layout, and per-worktree docker-compose isolation via automatic port offsetting (`[ports]`) and environment variable injection (`[environment]`).
+
+Inspired by [opencode-worktree](https://github.com/kdcokenny/opencode-worktree)
 
 ## Installation
 

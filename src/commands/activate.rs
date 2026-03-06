@@ -49,7 +49,7 @@ pub fn run(target: &str) -> Result<()> {
     } else {
         let index = fs::read_to_string(worktree_path.join(".yati_index"))
             .ok()
-            .and_then(|s| s.trim().parse::<u32>().ok())
+            .and_then(|s| s.lines().next().and_then(|l| l.trim().parse::<u32>().ok()))
             .unwrap_or(0);
         println!("Creating tmux session '{}'", session_name);
         tmux::new_session(&session_name, &worktree_path)?;

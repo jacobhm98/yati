@@ -15,7 +15,7 @@ fn allocate_index(project_name: &str) -> Result<u32> {
         for entry in entries.flatten() {
             let index_file = entry.path().join(".yati_index");
             if let Ok(contents) = fs::read_to_string(&index_file) {
-                if let Ok(idx) = contents.trim().parse::<u32>() {
+                if let Ok(idx) = contents.lines().next().unwrap_or("").trim().parse::<u32>() {
                     used.insert(idx);
                 }
             }
@@ -77,7 +77,13 @@ pub fn run(branch_name: &str) -> Result<()> {
     let session_name = format!("{}/{}", project_name, branch_name);
 
     let index = allocate_index(&project_name)?;
-    fs::write(worktree_path.join(".yati_index"), index.to_string())?;
+    let mut index_contents = index.to_string();
+    let offset = index * config.ports.offset as u32;
+    for (name, base) in &config.ports.ports {
+        let value = *base as u32 + offset;
+        index_contents.push_str(&format!("\n{}={}", name, value));
+    }
+    fs::write(worktree_path.join(".yati_index"), index_contents)?;
 
     println!("Creating tmux session '{}'", session_name);
     tmux::new_session(&session_name, &worktree_path)?;
