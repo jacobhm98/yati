@@ -117,17 +117,33 @@ fn has_untracked_non_ignored_files(path: &Path, repo_dir: &Path) -> Result<bool>
     Ok(!text.trim().is_empty())
 }
 
-fn clean_ignored_files(path: &Path, repo_dir: &Path) -> Result<()> {
+fn clean_ignored_files(path: &Path, repo_dir: &Path) {
     let output = Command::new("git")
         .args(["-C", &path.to_string_lossy(), "clean", "-fdX"])
         .current_dir(repo_dir)
-        .output()
-        .context("Failed to run git clean")?;
-    if !output.status.success() {
-        bail!(
-            "git clean -fdX failed: {}",
-            String::from_utf8_lossy(&output.stderr).trim()
-        );
+        .output();
+    match output {
+        Ok(o) if !o.status.success() => {
+            eprintln!(
+                "Warning: git clean -fdX failed: {}",
+                String::from_utf8_lossy(&o.stderr).trim()
+            );
+        }
+        Err(e) => {
+            eprintln!("Warning: failed to run git clean: {}", e);
+        }
+        _ => {}
+    }
+}
+
+pub fn sudo_remove_dir(path: &Path) -> Result<()> {
+    eprintln!("Permission denied, retrying with sudo...");
+    let status = Command::new("sudo")
+        .args(["rm", "-rf", &path.to_string_lossy()])
+        .status()
+        .context("Failed to run sudo rm -rf")?;
+    if !status.success() {
+        bail!("sudo rm -rf {} failed", path.display());
     }
     Ok(())
 }
@@ -144,7 +160,7 @@ pub fn worktree_remove(path: &Path, force: bool, repo_dir: &Path) -> Result<()> 
     }
 
     // Clean gitignored files (e.g. .env, node_modules) so git worktree remove succeeds
-    clean_ignored_files(path, repo_dir)?;
+    clean_ignored_files(path, repo_dir);
 
     let output = Command::new("git")
         .args(["worktree", "remove", "--force", &path.to_string_lossy()])
@@ -155,8 +171,14 @@ pub fn worktree_remove(path: &Path, force: bool, repo_dir: &Path) -> Result<()> 
     if !output.status.success() {
         // Fall back to manual removal + prune if git worktree remove still fails
         if path.exists() {
-            std::fs::remove_dir_all(path)
-                .with_context(|| format!("Failed to remove {}", path.display()))?;
+            if let Err(e) = std::fs::remove_dir_all(path) {
+                if e.kind() == std::io::ErrorKind::PermissionDenied {
+                    sudo_remove_dir(path)?;
+                } else {
+                    return Err(e)
+                        .with_context(|| format!("Failed to remove {}", path.display()));
+                }
+            }
         }
         worktree_prune(repo_dir)?;
     }

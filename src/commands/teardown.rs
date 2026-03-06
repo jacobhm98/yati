@@ -56,8 +56,14 @@ pub fn run(force: bool) -> Result<()> {
 
     // Remove the worktree directory if it still exists
     if worktree_path.exists() {
-        std::fs::remove_dir_all(&worktree_path)
-            .with_context(|| format!("Failed to remove directory {}", worktree_path.display()))?;
+        if let Err(e) = std::fs::remove_dir_all(&worktree_path) {
+            if e.kind() == std::io::ErrorKind::PermissionDenied {
+                git::sudo_remove_dir(&worktree_path)?;
+            } else {
+                return Err(e)
+                    .with_context(|| format!("Failed to remove directory {}", worktree_path.display()));
+            }
+        }
     }
 
     // Prune stale worktree metadata
