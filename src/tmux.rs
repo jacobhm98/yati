@@ -2,7 +2,7 @@ use anyhow::{bail, Context, Result};
 use std::path::Path;
 use std::process::Command;
 
-use crate::config::WindowConfig;
+use crate::config::{self, Config, WindowConfig};
 
 pub fn is_in_tmux() -> bool {
     std::env::var("TMUX").is_ok()
@@ -263,6 +263,52 @@ pub fn create_command_window(
             String::from_utf8_lossy(&output.stderr).trim()
         );
     }
+    Ok(())
+}
+
+pub fn set_environment(session: &str, key: &str, value: &str) -> Result<()> {
+    let output = Command::new("tmux")
+        .args(["set-environment", "-t", session, key, value])
+        .output()
+        .context("Failed to run tmux set-environment")?;
+    if !output.status.success() {
+        bail!(
+            "tmux set-environment failed: {}",
+            String::from_utf8_lossy(&output.stderr).trim()
+        );
+    }
+    Ok(())
+}
+
+pub fn setup_environment(
+    session: &str,
+    cfg: &Config,
+    project: &str,
+    branch: &str,
+    index: u32,
+) -> Result<()> {
+    // COMPOSE_PROJECT_NAME (unless overridden)
+    if !cfg.environment.contains_key("COMPOSE_PROJECT_NAME") {
+        let compose_name = config::sanitize_compose_name(&format!("{}-{}", project, branch));
+        set_environment(session, "COMPOSE_PROJECT_NAME", &compose_name)?;
+    }
+
+    // YATI_PORT_OFFSET
+    let offset = index * cfg.ports.offset as u32;
+    set_environment(session, "YATI_PORT_OFFSET", &offset.to_string())?;
+
+    // Port variables
+    for (name, base) in &cfg.ports.ports {
+        let value = *base as u32 + offset;
+        set_environment(session, name, &value.to_string())?;
+    }
+
+    // Custom environment variables
+    for (key, value) in &cfg.environment {
+        let expanded = config::expand_template(value, project, branch);
+        set_environment(session, key, &expanded)?;
+    }
+
     Ok(())
 }
 

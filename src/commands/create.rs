@@ -1,7 +1,32 @@
 use anyhow::{bail, Context, Result};
+use std::collections::HashSet;
+use std::fs;
 use std::process::Command;
 
 use crate::{config, copy, git, tmux};
+
+fn allocate_index(project_name: &str) -> Result<u32> {
+    let yati_base = dirs::home_dir()
+        .context("Could not determine home directory")?
+        .join(".yati")
+        .join(project_name);
+    let mut used: HashSet<u32> = HashSet::new();
+    if let Ok(entries) = fs::read_dir(&yati_base) {
+        for entry in entries.flatten() {
+            let index_file = entry.path().join(".yati_index");
+            if let Ok(contents) = fs::read_to_string(&index_file) {
+                if let Ok(idx) = contents.trim().parse::<u32>() {
+                    used.insert(idx);
+                }
+            }
+        }
+    }
+    let mut index = 0;
+    while used.contains(&index) {
+        index += 1;
+    }
+    Ok(index)
+}
 
 pub fn run(branch_name: &str) -> Result<()> {
     let repo_root = git::main_worktree_root()?;
@@ -51,8 +76,12 @@ pub fn run(branch_name: &str) -> Result<()> {
 
     let session_name = format!("{}/{}", project_name, branch_name);
 
+    let index = allocate_index(&project_name)?;
+    fs::write(worktree_path.join(".yati_index"), index.to_string())?;
+
     println!("Creating tmux session '{}'", session_name);
     tmux::new_session(&session_name, &worktree_path)?;
+    tmux::setup_environment(&session_name, &config, &project_name, branch_name, index)?;
     tmux::setup_windows(&session_name, &worktree_path, &config.tmux.windows)?;
 
     if !async_hooks.is_empty() {

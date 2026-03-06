@@ -1,4 +1,5 @@
 use anyhow::{bail, Context, Result};
+use std::fs;
 use std::process::Command;
 
 use crate::{config, git, tmux};
@@ -46,8 +47,13 @@ pub fn run(target: &str) -> Result<()> {
     if tmux::session_exists(&session_name) {
         println!("Switching to existing session '{}'", session_name);
     } else {
+        let index = fs::read_to_string(worktree_path.join(".yati_index"))
+            .ok()
+            .and_then(|s| s.trim().parse::<u32>().ok())
+            .unwrap_or(0);
         println!("Creating tmux session '{}'", session_name);
         tmux::new_session(&session_name, &worktree_path)?;
+        tmux::setup_environment(&session_name, &config, &project_name, &branch_name, index)?;
         tmux::setup_windows(&session_name, &worktree_path, &config.tmux.windows)?;
     }
 

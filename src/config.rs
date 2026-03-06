@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use serde::Deserialize;
+use std::collections::HashMap;
 use std::path::Path;
 
 #[derive(Debug, Deserialize, Clone)]
@@ -49,6 +50,14 @@ pub struct TmuxConfig {
 
 #[derive(Debug, Deserialize, Default)]
 #[serde(default)]
+pub struct PortsConfig {
+    pub offset: u16,
+    #[serde(flatten)]
+    pub ports: HashMap<String, u16>,
+}
+
+#[derive(Debug, Deserialize, Default)]
+#[serde(default)]
 pub struct Config {
     pub copy_files: Vec<String>,
     pub exclude: Vec<String>,
@@ -56,6 +65,22 @@ pub struct Config {
     pub post_activate: Vec<HookConfig>,
     pub pre_teardown: Vec<HookConfig>,
     pub tmux: TmuxConfig,
+    pub ports: PortsConfig,
+    #[serde(default)]
+    pub environment: HashMap<String, String>,
+}
+
+pub fn expand_template(value: &str, project: &str, branch: &str) -> String {
+    value
+        .replace("{{project}}", project)
+        .replace("{{branch}}", branch)
+}
+
+pub fn sanitize_compose_name(name: &str) -> String {
+    name.to_lowercase()
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' { c } else { '-' })
+        .collect()
 }
 
 pub fn load_config(repo_root: &Path) -> Result<Config> {

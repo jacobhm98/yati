@@ -2,11 +2,15 @@
 
 _yāti_ (याति) — Sanskrit for "travels" or "goes forth." In the Rigveda, it describes the journeying of gods between realms. _yāti_ lets you travel between worktrees seamlessly, each one a self-contained world.
 
-### What does it do?
+## What does it do?
 
-It is a git worktree manager with tmux integration. Creates and manages isolated worktrees for feature branches, each in its own tmux session. For when you want to vibe code multiple branches of the same repository simultaneously but still keep your hand in the code using your regular tmux workflows.
+It is a git worktree manager with tmux and docker-compose integration. Creates and manages isolated worktrees for feature branches, each in its own tmux session. For when you want to vibe code multiple branches of the same repository simultaneously but still keep your hand in the code using your regular tmux workflows.
 
 Heavily inspired by [opencode-worktree](https://github.com/kdcokenny/opencode-worktree), but agent agnostic.
+
+### Dev environment lifecycle management
+
+yati manages the full lifecycle of a worktree: file copying, `post_create`/`post_activate`/`pre_teardown` hooks, tmux session layout, and per-worktree docker-compose isolation via automatic port offsetting (`[ports]`) and environment variable injection (`[environment]`).
 
 ## Installation
 
@@ -87,6 +91,53 @@ yati list
 
 Shows all yati-managed worktrees across all projects.
 
+## Docker-Compose Isolation
+
+When you run multiple worktrees of the same project, `docker compose up` in each one will clash — container names, networks, volumes, and host-port bindings all collide. yati solves this by automatically injecting environment variables into every tmux pane of a worktree session.
+
+### What yati does automatically
+
+1. **`COMPOSE_PROJECT_NAME`** is set to `<project>-<branch>` (sanitized for Docker). This isolates container names, networks, and volumes per worktree — no config needed.
+
+2. **`[ports]` table** — each worktree is assigned an auto-incrementing index (0, 1, 2, ...). For each entry in `[ports]`, the env var is set to `base + index * offset`. This gives every worktree unique host ports.
+
+3. **`[environment]` table** — arbitrary env vars with `{{project}}` and `{{branch}}` template support, expanded per worktree.
+
+yati also sets **`YATI_PORT_OFFSET`** to `index * offset` for use in custom scripts.
+
+### Index allocation
+
+Each worktree gets the lowest available index starting at 0. The index is persisted in a `.yati_index` file inside the worktree directory and is freed when the worktree is torn down.
+
+### Using the variables in docker-compose.yml
+
+Reference the env vars in your `docker-compose.yml` with fallback defaults so it still works outside yati:
+
+```yaml
+services:
+  db:
+    ports:
+      - "${DB_PORT:-5432}:5432"
+  web:
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+```
+
+### Example
+
+With this config:
+
+```toml
+[ports]
+offset = 100
+DB_PORT = 5432
+WEB_PORT = 3000
+```
+
+- Worktree index 0: `DB_PORT=5432`, `WEB_PORT=3000`
+- Worktree index 1: `DB_PORT=5532`, `WEB_PORT=3100`
+- Worktree index 2: `DB_PORT=5632`, `WEB_PORT=3200`
+
 ## Shell Completions
 
 yati supports dynamic shell completions for subcommands, flags, worktree targets, and branch names. Run the appropriate setup for your shell once:
@@ -117,7 +168,7 @@ Create a `yati.toml` in your repository root:
 
 ```toml
 # Files or directories to copy from the main worktree into new worktrees
-copy_files = [".env", "node_modules"]
+copy_files = [".env"]
 
 # Patterns to exclude when copying
 exclude = ["*.log"]
@@ -142,6 +193,18 @@ pre_teardown = ["docker compose down"]
 windows = [
   { name = "editor", command = "nvim" },
   { name = "server", command = "npm run dev" },
-  { name = "claude --continue" },
+  { name = "claude" },
 ]
+
+# Per-worktree port isolation for docker-compose.
+# Each worktree gets an index (0, 1, 2...); port = base + index * offset.
+[ports]
+offset = 100
+DB_PORT = 5432
+WEB_PORT = 3000
+
+# Arbitrary env vars injected into the tmux session.
+# Supports {{project}} and {{branch}} templates.
+[environment]
+MY_SERVICE_ID = "{{project}}-{{branch}}"
 ```
