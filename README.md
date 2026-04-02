@@ -28,6 +28,12 @@ cargo install --path .
 yati create feature-branch
 ```
 
+You can optionally specify a session index with `--index`. This controls port allocation and must not already be in use:
+
+```sh
+yati create --index 3 feature-branch
+```
+
 This will:
 
 1. Create a new git worktree at `~/.yati/<project>/feature-branch`
