@@ -178,7 +178,11 @@ yati --generate man > ~/.local/share/man/man1/yati.1
 
 Then `man yati` will work. If your system uses a different man path, adjust accordingly (e.g. `/usr/local/share/man/man1/`).
 
-A [tldr page](tldr/yati.md) is also included in the repository for quick reference.
+A [tldr page](tldr/yati.md) is also included. To make it available to your tldr client:
+
+```sh
+cp tldr/yati.md ~/.local/share/tldr/pages/common/yati.md
+```
 
 ## Configuration
 
