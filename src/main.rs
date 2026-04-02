@@ -15,7 +15,7 @@ fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
     match cli.command {
         Command::Activate { target } => commands::activate::run(&target),
-        Command::Create { branch_name } => commands::create::run(&branch_name),
+        Command::Create { branch_name, index } => commands::create::run(&branch_name, index),
         Command::Deactivate => commands::deactivate::run(),
         Command::Teardown { force } => commands::teardown::run(force),
         Command::List => commands::list::run(),

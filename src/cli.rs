@@ -15,6 +15,9 @@ pub enum Command {
         /// Name of the branch to create
         #[arg(add = ArgValueCompleter::new(crate::completions::complete_create_branch))]
         branch_name: String,
+        /// Set the session index to a specific value (must not already be in use)
+        #[arg(long)]
+        index: Option<u32>,
     },
     /// Tear down the current yati worktree
     Teardown {

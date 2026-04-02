@@ -5,7 +5,7 @@ use std::process::Command;
 
 use crate::{config, copy, git, tmux};
 
-fn allocate_index(project_name: &str) -> Result<u32> {
+fn allocate_index(project_name: &str, requested: Option<u32>) -> Result<u32> {
     let yati_base = dirs::home_dir()
         .context("Could not determine home directory")?
         .join(".yati")
@@ -21,14 +21,24 @@ fn allocate_index(project_name: &str) -> Result<u32> {
             }
         }
     }
-    let mut index = 0;
-    while used.contains(&index) {
-        index += 1;
+    match requested {
+        Some(idx) => {
+            if used.contains(&idx) {
+                bail!("Index {} is already in use", idx);
+            }
+            Ok(idx)
+        }
+        None => {
+            let mut index = 0;
+            while used.contains(&index) {
+                index += 1;
+            }
+            Ok(index)
+        }
     }
-    Ok(index)
 }
 
-pub fn run(branch_name: &str) -> Result<()> {
+pub fn run(branch_name: &str, requested_index: Option<u32>) -> Result<()> {
     let repo_root = git::main_worktree_root()?;
     let project_name = git::main_repo_name()?;
     git::validate_branch_name(branch_name)?;
@@ -76,7 +86,7 @@ pub fn run(branch_name: &str) -> Result<()> {
 
     let session_name = format!("{}/{}", project_name, branch_name);
 
-    let index = allocate_index(&project_name)?;
+    let index = allocate_index(&project_name, requested_index)?;
     let mut index_contents = index.to_string();
     let offset = index * config.ports.offset as u32;
     for (name, base) in &config.ports.ports {
