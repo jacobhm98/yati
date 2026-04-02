@@ -2,7 +2,63 @@
 
 ## What is yati?
 
-yati is a CLI tool that manages git worktrees with tmux session integration. It creates worktrees under `~/.yati/<project>/<branch>`, opens them in dedicated tmux sessions, and tears them down cleanly.
+yati is a CLI tool that manages git worktrees with tmux session integration and docker-compose port isolation. It creates worktrees under `~/.yati/<project>/<branch>`, opens them in dedicated tmux sessions, and tears them down cleanly.
+
+## Using yati
+
+### Commands
+
+| Command | Purpose |
+|---------|---------|
+| `yati create <branch> [--index N]` | Create a worktree + tmux session for a branch |
+| `yati activate <target>` | Switch to an existing worktree (target: branch or project/branch) |
+| `yati deactivate` | Leave current session without destroying it |
+| `yati teardown [--force]` | Remove worktree, kill tmux session, delete branch |
+| `yati list` | List all yati-managed worktrees across all projects |
+| `yati --generate man` | Print man page to stdout |
+
+### Port isolation (docker-compose)
+
+Each worktree gets an auto-assigned **index** (0, 1, 2...) stored in `.yati_index`. The `[ports]` section in `yati.toml` defines base port values and an offset:
+
+```toml
+[ports]
+offset = 100
+DB_PORT = 5432
+WEB_PORT = 3000
+```
+
+Port env vars are computed as **base + index * offset**:
+
+| Worktree index | DB_PORT | WEB_PORT |
+|----------------|---------|----------|
+| 0 | 5432 | 3000 |
+| 1 | 5532 | 3100 |
+| 2 | 5632 | 3200 |
+
+These are injected as environment variables into the tmux session, so `docker-compose.yml` can reference them as `${DB_PORT}`, `${WEB_PORT}`, etc. This means multiple worktrees can run docker-compose services simultaneously without port collisions.
+
+### Environment variables injected into tmux sessions
+
+- `COMPOSE_PROJECT_NAME` — auto-sanitized `<project>-<branch>` (prevents docker container name collisions)
+- `YATI_PORT_OFFSET` — `index * offset` (useful for scripting)
+- Port variables — one per `[ports]` entry (e.g. `DB_PORT`, `WEB_PORT`)
+- Custom variables — from `[environment]` section, supports `{{project}}` and `{{branch}}` templates
+
+### Configuration (yati.toml)
+
+Place a `yati.toml` at the repository root. Sections:
+
+- `copy_files` — files to copy from main worktree (e.g. `.env`, secrets)
+- `exclude` — glob patterns to skip during copy
+- `post_create` — hooks after worktree creation (plain string = sync, `{command, async=true}` = async in tmux window)
+- `post_activate` — hooks on every activation (including after creation)
+- `pre_teardown` — hooks before teardown
+- `[tmux]` — window definitions (`name`, optional `command`)
+- `[ports]` — port isolation config (`offset` + base port variables)
+- `[environment]` — custom env vars with `{{project}}`/`{{branch}}` templates
+
+See `example.yati.toml` for a complete reference.
 
 ## Project structure
 
