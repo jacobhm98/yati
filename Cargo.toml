@@ -10,3 +10,4 @@ toml = "0.8"
 anyhow = "1"
 dirs = "6"
 clap_complete = { version = "4", features = ["unstable-dynamic"] }
+clap_mangen = "0.2"

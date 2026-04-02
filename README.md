@@ -168,6 +168,18 @@ echo 'source <(COMPLETE=zsh yati)' >> ~/.zshrc
 
 After restarting your shell (or sourcing the file), `yati <TAB>` will complete subcommands, `yati activate <TAB>` will complete with existing worktree targets, and `yati create <TAB>` will complete with git branch names.
 
+## Man Page
+
+yati can generate its own man page:
+
+```sh
+yati --generate man > ~/.local/share/man/man1/yati.1
+```
+
+Then `man yati` will work. If your system uses a different man path, adjust accordingly (e.g. `/usr/local/share/man/man1/`).
+
+A [tldr page](tldr/yati.md) is also included in the repository for quick reference.
+
 ## Configuration
 
 Create a `yati.toml` in your repository root:
