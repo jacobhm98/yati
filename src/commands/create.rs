@@ -5,18 +5,25 @@ use std::process::Command;
 
 use crate::{config, copy, git, tmux};
 
-fn allocate_index(project_name: &str, requested: Option<u32>) -> Result<u32> {
+fn allocate_index(requested: Option<u32>) -> Result<u32> {
     let yati_base = dirs::home_dir()
         .context("Could not determine home directory")?
-        .join(".yati")
-        .join(project_name);
+        .join(".yati");
     let mut used: HashSet<u32> = HashSet::new();
-    if let Ok(entries) = fs::read_dir(&yati_base) {
-        for entry in entries.flatten() {
-            let index_file = entry.path().join(".yati_index");
-            if let Ok(contents) = fs::read_to_string(&index_file) {
-                if let Ok(idx) = contents.lines().next().unwrap_or("").trim().parse::<u32>() {
-                    used.insert(idx);
+    // Indices are allocated globally across all projects, so scan every
+    // project's worktrees: ~/.yati/<project>/<branch>/.yati_index
+    if let Ok(projects) = fs::read_dir(&yati_base) {
+        for project in projects.flatten() {
+            if let Ok(worktrees) = fs::read_dir(project.path()) {
+                for worktree in worktrees.flatten() {
+                    let index_file = worktree.path().join(".yati_index");
+                    if let Ok(contents) = fs::read_to_string(&index_file) {
+                        if let Ok(idx) =
+                            contents.lines().next().unwrap_or("").trim().parse::<u32>()
+                        {
+                            used.insert(idx);
+                        }
+                    }
                 }
             }
         }
@@ -86,7 +93,7 @@ pub fn run(branch_name: &str, requested_index: Option<u32>) -> Result<()> {
 
     let session_name = format!("{}/{}", project_name, branch_name);
 
-    let index = allocate_index(&project_name, requested_index)?;
+    let index = allocate_index(requested_index)?;
     let mut index_contents = index.to_string();
     let offset = index * config.ports.offset as u32;
     for (name, base) in &config.ports.ports {
