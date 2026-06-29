@@ -10,11 +10,12 @@ yati is a CLI tool that manages git worktrees with tmux session integration and 
 
 | Command | Purpose |
 |---------|---------|
-| `yati create <branch> [--index N]` | Create a worktree + tmux session for a branch |
+| `yati create <branch> [--index N] [--profile NAME]` | Create a worktree + tmux session for a branch |
 | `yati activate <target>` | Switch to an existing worktree (target: branch or project/branch) |
 | `yati deactivate` | Leave current session without destroying it |
 | `yati teardown [--force]` | Remove worktree, kill tmux session, delete branch |
 | `yati list` | List all yati-managed worktrees across all projects |
+| `yati init` | Write a starter `yati.toml` (from the example config) to the repo root |
 | `yati --generate man` | Print man page to stdout |
 
 ### Port isolation (docker-compose)
@@ -57,6 +58,7 @@ Place a `yati.toml` at the repository root. Sections:
 - `[tmux]` — window definitions (`name`, optional `command`)
 - `[ports]` — port isolation config (`offset` + base port variables)
 - `[environment]` — custom env vars with `{{project}}`/`{{branch}}` templates
+- `[profiles.<name>]` — named overlays selected with `--profile`; the base config above is the default. A profile may override `windows`, `post_create`, `post_activate`, `pre_teardown`, and `environment`, replacing list fields and merging `environment`. The chosen profile is saved in `.yati_index` so `activate`/`teardown` reuse it.
 
 See `example.yati.toml` for a complete reference.
 
@@ -65,7 +67,7 @@ See `example.yati.toml` for a complete reference.
 ```
 src/
   main.rs          — entry point, dispatches CLI commands
-  cli.rs           — clap-based CLI definition (subcommands: create, activate, deactivate, teardown, list)
+  cli.rs           — clap-based CLI definition (subcommands: create, activate, deactivate, teardown, list, init)
   tmux.rs          — tmux session operations (new_session, kill_session, attach_or_switch, detach, etc.)
   git.rs           — git operations (worktree add/remove/list, repo info, branch validation)
   config.rs        — loads yati.toml configuration
@@ -77,6 +79,7 @@ src/
     deactivate.rs  — `yati deactivate`: leaves current session (switches back or detaches)
     teardown.rs    — `yati teardown`: removes worktree + kills tmux session
     list.rs        — `yati list`: lists yati-managed worktrees across all projects
+    init.rs        — `yati init`: writes a starter yati.toml (from example.yati.toml) to the repo root
 ```
 
 ## Configuration

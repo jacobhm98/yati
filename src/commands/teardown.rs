@@ -27,7 +27,8 @@ pub fn run(force: bool) -> Result<()> {
     let main_worktree = entries
         .first()
         .context("No worktrees found")?;
-    let config = config::load_config(&main_worktree.path)?;
+    let config = config::load_config(&main_worktree.path)?
+        .resolve_profile(config::read_profile(&worktree_path).as_deref())?;
 
     // Run pre_teardown hooks
     for hook in &config.pre_teardown {

@@ -34,6 +34,12 @@ You can optionally specify a session index with `--index`. This controls port al
 yati create --index 3 feature-branch
 ```
 
+Pass `--profile <name>` to layer a named profile from `[profiles.<name>]` over the base config (see [Profiles](#profiles)):
+
+```sh
+yati create --profile backend feature-branch
+```
+
 This will:
 
 1. Create a new git worktree at `~/.yati/<project>/feature-branch`
@@ -96,6 +102,14 @@ yati list
 ```
 
 Shows all yati-managed worktrees across all projects.
+
+### Initialize a config
+
+```sh
+yati init
+```
+
+Writes a starter `yati.toml` to the repository root, pre-filled with the example configuration (copy rules, hooks, tmux windows, ports, environment, and profiles) ready to edit. It won't overwrite an existing `yati.toml`.
 
 ## Docker-Compose Isolation
 
@@ -186,7 +200,7 @@ cp tldr/yati.md ~/.local/share/tldr/pages/common/yati.md
 
 ## Configuration
 
-Create a `yati.toml` in your repository root:
+Create a `yati.toml` in your repository root (or run `yati init` to generate this starter file):
 
 ```toml
 # Files or directories to copy from the main worktree into new worktrees
@@ -229,4 +243,30 @@ WEB_PORT = 3000
 # Supports {{project}} and {{branch}} templates.
 [environment]
 MY_SERVICE_ID = "{{project}}-{{branch}}"
+
+# Named profiles. Each profile layers over the base config above, overriding
+# only the fields it sets. Select one with `yati create --profile <name>`.
+[profiles.backend]
+windows = [
+  { name = "editor", command = "nvim" },
+  { name = "api", command = "go run ./cmd/api" },
+]
+
+[profiles.frontend]
+# Inherits post_create/environment from the base; overrides only windows.
+windows = [
+  { name = "editor", command = "nvim" },
+  { name = "dev", command = "npm run dev" },
+]
 ```
+
+### Profiles
+
+The top-level config (`[tmux]`, hooks, `[environment]`) is the **base**, used when you don't pass `--profile`. Named `[profiles.<name>]` tables let you define alternative setups for the same repo (e.g. backend vs frontend work).
+
+- `yati create <branch>` uses the base config.
+- `yati create <branch> --profile <name>` starts from the base, then applies `[profiles.<name>]` on top. A profile only needs to specify what differs from the base.
+- A profile may override `windows`, `post_create`, `post_activate`, `pre_teardown`, and `environment`. List fields (`windows`, the hooks) **replace** the base; `environment` **merges** (profile keys win). `[ports]` is always global.
+- An unknown profile name fails before any worktree is created.
+
+The selected profile is recorded in the worktree's `.yati_index`, so `yati activate` and `yati teardown` resolve the same profile later (e.g. recreating the right windows if a session was lost).

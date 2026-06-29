@@ -32,9 +32,14 @@ fn main() -> anyhow::Result<()> {
 
     match command {
         Command::Activate { target } => commands::activate::run(&target),
-        Command::Create { branch_name, index } => commands::create::run(&branch_name, index),
+        Command::Create {
+            branch_name,
+            index,
+            profile,
+        } => commands::create::run(&branch_name, index, profile.as_deref()),
         Command::Deactivate => commands::deactivate::run(),
         Command::Teardown { force } => commands::teardown::run(force),
         Command::List => commands::list::run(),
+        Command::Init => commands::init::run(),
     }
 }

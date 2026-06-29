@@ -4,6 +4,8 @@ use std::process::Command;
 
 use clap_complete::engine::CompletionCandidate;
 
+use crate::{config, git};
+
 /// Complete `yati activate` with `project/branch` targets from `~/.yati/`.
 pub fn complete_activate_target(current: &OsStr) -> Vec<CompletionCandidate> {
     let prefix = current.to_string_lossy();
@@ -58,6 +60,23 @@ pub fn complete_create_branch(current: &OsStr) -> Vec<CompletionCandidate> {
         .lines()
         .filter(|line| line.starts_with(prefix.as_ref()))
         .map(|line| CompletionCandidate::new(line.to_string()))
+        .collect()
+}
+
+/// Complete `yati create --profile` with profile names from the repo's yati.toml.
+pub fn complete_create_profile(current: &OsStr) -> Vec<CompletionCandidate> {
+    let prefix = current.to_string_lossy();
+    let Ok(repo_root) = git::main_worktree_root() else {
+        return Vec::new();
+    };
+    let Ok(config) = config::load_config(&repo_root) else {
+        return Vec::new();
+    };
+    config
+        .profiles
+        .keys()
+        .filter(|name| name.starts_with(prefix.as_ref()))
+        .map(|name| CompletionCandidate::new(name.clone()))
         .collect()
 }
 

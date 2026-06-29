@@ -45,12 +45,13 @@ fn allocate_index(requested: Option<u32>) -> Result<u32> {
     }
 }
 
-pub fn run(branch_name: &str, requested_index: Option<u32>) -> Result<()> {
+pub fn run(branch_name: &str, requested_index: Option<u32>, profile: Option<&str>) -> Result<()> {
     let repo_root = git::main_worktree_root()?;
     let project_name = git::main_repo_name()?;
     git::validate_branch_name(branch_name)?;
 
-    let config = config::load_config(&repo_root)?;
+    // Resolve the profile before creating anything so an unknown name fails fast.
+    let config = config::load_config(&repo_root)?.resolve_profile(profile)?;
 
     let yati_base = dirs::home_dir()
         .context("Could not determine home directory")?
@@ -99,6 +100,10 @@ pub fn run(branch_name: &str, requested_index: Option<u32>) -> Result<()> {
     for (name, base) in &config.ports.ports {
         let value = *base as u32 + offset;
         index_contents.push_str(&format!("\n{}={}", name, value));
+    }
+    // Persist the selected profile so activate/teardown resolve the same one.
+    if let Some(name) = profile {
+        index_contents.push_str(&format!("\nYATI_PROFILE={}", name));
     }
     fs::write(worktree_path.join(".yati_index"), index_contents)?;
 
