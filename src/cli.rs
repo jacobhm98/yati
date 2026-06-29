@@ -63,6 +63,9 @@ pub enum Command {
         /// The index determines port offsets: port = base + index * offset.
         #[arg(long)]
         index: Option<u32>,
+        /// Profile from [profiles.<name>] in yati.toml to layer over the base config.
+        #[arg(long, add = ArgValueCompleter::new(crate::completions::complete_create_profile))]
+        profile: Option<String>,
     },
     /// Tear down the current yati worktree
     #[command(
@@ -86,4 +89,12 @@ pub enum Command {
     Deactivate,
     /// List all yati-managed worktrees across all projects
     List,
+    /// Write a starter yati.toml to the repository root
+    #[command(
+        long_about = "Write a starter yati.toml to the repository root.\n\n\
+            Creates a yati.toml at the current repository's root, pre-filled with the \
+            documented example configuration (copy_files, hooks, [tmux] windows, [ports], \
+            [environment], and [profiles]). Refuses to overwrite an existing yati.toml."
+    )]
+    Init,
 }

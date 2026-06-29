@@ -42,7 +42,8 @@ pub fn run(target: &str) -> Result<()> {
 
     let entries = git::worktree_list_from(&worktree_path)?;
     let main_worktree = entries.first().context("No worktrees found")?;
-    let config = config::load_config(&main_worktree.path)?;
+    let config = config::load_config(&main_worktree.path)?
+        .resolve_profile(config::read_profile(&worktree_path).as_deref())?;
 
     let index = fs::read_to_string(worktree_path.join(".yati_index"))
         .ok()
